@@ -1,1 +1,1 @@
-# metaanalysis_for_rare_events_simulation
+# metaanalysis_for_rare_events_simulationSimulation and analysis scripts
