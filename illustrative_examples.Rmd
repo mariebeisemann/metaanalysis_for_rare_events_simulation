@@ -1,0 +1,324 @@
+---
+title: "Illustrative examples"
+author: "Marie Beisemann"
+date: "6 11 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include = FALSE}
+setwd("~/Documents/03_Paper/03_in_preparation/2019_rare_events_ma/09_illustration")
+```
+
+# Set-up
+
+```{r}
+# load functions
+source("functions.R")
+```
+
+# Read in data
+
+```{r}
+# read in data
+
+file1 <- "CD005158StatsDataOnly.rm5"
+dat1 <- xmlParse(file1)
+dat1 <- xmlToList(dat1)
+
+file2 <- "CD011047StatsDataOnly.rm5"
+dat2 <- xmlParse(file2)
+dat2 <- xmlToList(dat2)
+
+# extract data from file 1
+
+# extract subsets of data in which at least one zero occurred
+
+## cardiovascular mortality
+dat1_cardio_mort <- extract_data(
+  data = dat1, no_outcome = 2, 
+  subgroup_from = 6, subgroup_to = 9
+)
+
+# extract data from file 2 
+
+## adverse event (serious)
+dat2_adv_event_ser <- extract_data(
+  data = dat2, no_outcome = 6, 
+  subgroup_from = 6, subgroup_to = 7
+) %>%
+  filter(!is.na(study_id))
+
+## mortality (cardiovascular)
+dat2_mort_cardio <- extract_data(
+  data = dat2, no_outcome = 9, 
+  subgroup_from = 6, subgroup_to = 7
+) %>%
+  filter(!is.na(study_id))
+
+## stroke fatal
+dat2_stroke_fatal <- extract_data(
+  data = dat2, no_outcome = 11, 
+  subgroup_from = 6, subgroup_to = 7
+)
+```
+
+# Prep data for analysis
+```{r}
+# dat1_cardio_mort
+
+## for standard models
+dat1_cardio_mort <- dat1_cardio_mort %>%
+  mutate(
+    events_1 = as.numeric(events_1),
+    events_2 = as.numeric(events_2),
+    total_1 = as.numeric(total_1),
+    total_2 = as.numeric(total_2),
+    no_events_1 = total_1 - events_1,
+    no_events_2 = total_2 - events_2
+    )
+
+dat1_cardio_mort_stand <- prep_data_standard(
+  data = dat1_cardio_mort,
+  treat_event = "events_1", 
+  treat_no_event = "no_events_1", 
+  control_event = "events_2", 
+  control_no_event = "no_events_2",
+  k = 0.5)
+
+## in long format
+dat1_cardio_mort_long <- dat1_cardio_mort %>%
+  select(-c(no_events_1, no_events_2)) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+## in long format without double zero studies
+dat1_cardio_mort_long_negbin <- dat1_cardio_mort_stand %>%
+  select(study_id:total_2) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+# dat2_adv_event_ser
+
+## for standard models
+dat2_adv_event_ser <- dat2_adv_event_ser %>%
+  mutate(
+    events_1 = as.numeric(events_1),
+    events_2 = as.numeric(events_2),
+    total_1 = as.numeric(total_1),
+    total_2 = as.numeric(total_2),
+    no_events_1 = total_1 - events_1,
+    no_events_2 = total_2 - events_2
+  )
+
+dat2_adv_event_ser_stand <- prep_data_standard(
+  data = dat2_adv_event_ser,
+  treat_event = "events_1", 
+  treat_no_event = "no_events_1", 
+  control_event = "events_2", 
+  control_no_event = "no_events_2",
+  k = 0.5)
+
+## in long format
+dat2_adv_event_ser_long <- dat2_adv_event_ser %>%
+  select(-c(no_events_1, no_events_2)) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+## in long format without double zero studies
+dat2_adv_event_ser_long_negbin <- dat2_adv_event_ser_stand %>%
+  select(study_id:total_2) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+# dat2_mort_cardio
+
+## for standard models
+dat2_mort_cardio <- dat2_mort_cardio %>%
+  mutate(
+    events_1 = as.numeric(events_1),
+    events_2 = as.numeric(events_2),
+    total_1 = as.numeric(total_1),
+    total_2 = as.numeric(total_2),
+    no_events_1 = total_1 - events_1,
+    no_events_2 = total_2 - events_2
+  )
+
+dat2_mort_cardio_stand <- prep_data_standard(
+  data = dat2_mort_cardio,
+  treat_event = "events_1", 
+  treat_no_event = "no_events_1", 
+  control_event = "events_2", 
+  control_no_event = "no_events_2",
+  k = 0.5)
+
+## in long format
+dat2_mort_cardio_long <- dat2_mort_cardio %>%
+  select(-c(no_events_1, no_events_2)) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+## in long format without double zero studies
+dat2_mort_cardio_long_negbin <- dat2_mort_cardio_stand %>%
+  select(study_id:total_2) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+# dat2_stroke_fatal
+
+## for standard models
+dat2_stroke_fatal <- dat2_stroke_fatal %>%
+  mutate(
+    events_1 = as.numeric(events_1),
+    events_2 = as.numeric(events_2),
+    total_1 = as.numeric(total_1),
+    total_2 = as.numeric(total_2),
+    no_events_1 = total_1 - events_1,
+    no_events_2 = total_2 - events_2
+  )
+
+dat2_stroke_fatal_stand <- prep_data_standard(
+  data = dat2_stroke_fatal,
+  treat_event = "events_1", 
+  treat_no_event = "no_events_1", 
+  control_event = "events_2", 
+  control_no_event = "no_events_2",
+  k = 0.5)
+
+## in long format
+dat2_stroke_fatal_long <- dat2_stroke_fatal %>%
+  select(-c(no_events_1, no_events_2)) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+
+## in long format without double zero studies
+dat2_stroke_fatal_long_negbin <- dat2_stroke_fatal_stand %>%
+  select(study_id:total_2) %>%
+  gather(events_1:events_2, key = "group", value = "count") %>%
+  mutate(n = ifelse(group == "events_1", total_1, total_2),
+         group = as.factor(group),
+         group = factor(group, levels(group)[c(2,1)])) %>%
+  select(-c(total_1, total_2))
+```
+
+# Describe data
+
+```{r}
+# dat1_cardio_mort
+describe_data(
+  data = dat1_cardio_mort,
+  data_long = dat1_cardio_mort_long,
+  data2 = dat1_cardio_mort_stand,
+  data2_long = dat1_cardio_mort_long_negbin
+)
+
+# dat2_adv_event_ser
+## that was the data set where only double-zero studies were included
+describe_data(
+  data = dat2_adv_event_ser,
+  data_long = dat2_adv_event_ser_long,
+  data2 = dat2_adv_event_ser_stand,
+  data2_long = dat2_adv_event_ser_long_negbin
+)
+
+# dat2_mort_cardio 
+describe_data(
+  data = dat2_mort_cardio,
+  data_long = dat2_mort_cardio_long,
+  data2 = dat2_mort_cardio_stand,
+  data2_long = dat2_mort_cardio_long_negbin
+)
+
+# dat2_stroke_fatal
+describe_data(
+  data = dat2_stroke_fatal,
+  data_long = dat2_stroke_fatal_long,
+  data2 = dat2_stroke_fatal_stand,
+  data2_long = dat2_stroke_fatal_long_negbin
+)
+```
+
+# Analysis
+
+```{r}
+# dat1_cardio_mort
+
+results_dat1_cardio_mort <- run_analyses(
+  data = dat1_cardio_mort,
+  data_long = dat1_cardio_mort_long,
+  data2 = dat1_cardio_mort_stand,
+  data2_long = dat1_cardio_mort_long_negbin
+)
+
+show_results(
+  results = results_dat1_cardio_mort,
+  data2 = dat1_cardio_mort_stand
+)
+
+# dat2_adv_event_ser
+
+## that was the data set where only double-zero studies were included
+results_dat2_adv_event_ser <- run_analyses(
+  data = dat2_adv_event_ser,
+  data_long = dat2_adv_event_ser_long,
+  data2 = dat2_adv_event_ser_stand,
+  data2_long = dat2_adv_event_ser_long_negbin
+)
+
+show_results(
+  results = results_dat2_adv_event_ser,
+  data2 = dat2_adv_event_ser_stand
+)
+
+# dat2_mort_cardio 
+
+results_dat2_mort_cardio <- run_analyses(
+  data = dat2_mort_cardio,
+  data_long = dat2_mort_cardio_long,
+  data2 = dat2_mort_cardio_stand,
+  data2_long = dat2_mort_cardio_long_negbin
+)
+
+show_results(
+  results = results_dat2_mort_cardio,
+  data2 = dat2_mort_cardio_stand
+)
+
+# dat2_stroke_fatal
+
+results_dat2_stroke_fatal <- run_analyses(
+  data = dat2_stroke_fatal,
+  data_long = dat2_stroke_fatal_long,
+  data2 = dat2_stroke_fatal_stand,
+  data2_long = dat2_stroke_fatal_long_negbin
+)
+
+show_results(
+  results = results_dat2_stroke_fatal,
+  data2 = dat2_stroke_fatal_stand
+)
+```
